@@ -1,8 +1,22 @@
+# Dependencies
 node_modules/
-build/
+
+# Build output
 dist/
-coverage/
+
+# Environment variables (NUNCA commitar!)
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.idea/
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Logs
 *.log
-.env*
-!.env.example
+npm-debug.log*
