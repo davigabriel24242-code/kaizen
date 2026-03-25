@@ -1,0 +1,188 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the Kaizen application.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The unique identifier for the user."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["operator", "leader", "admin"],
+          "description": "The user's role in the system."
+        },
+        "area": {
+          "type": "string",
+          "description": "The user's primary area."
+        },
+        "shift": {
+          "type": "string",
+          "description": "The user's primary shift."
+        }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "Kaizen": {
+      "title": "Kaizen",
+      "description": "A Kaizen improvement project.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for the Kaizen."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the Kaizen."
+        },
+        "unit": {
+          "type": "string",
+          "description": "The unit (e.g., FOSPAR)."
+        },
+        "area": {
+          "type": "string",
+          "description": "The area where the Kaizen was implemented."
+        },
+        "month": {
+          "type": "string",
+          "description": "The month of the Kaizen."
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date",
+          "description": "The start date of the Kaizen."
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date",
+          "description": "The end date of the Kaizen."
+        },
+        "method": {
+          "type": "string",
+          "description": "The method used (e.g., 5S, PDCA)."
+        },
+        "classification": {
+          "type": "string",
+          "description": "The classification (e.g., EHS, Productivity)."
+        },
+        "problem": {
+          "type": "string",
+          "description": "The problem or opportunity for improvement."
+        },
+        "solution": {
+          "type": "string",
+          "description": "The implemented countermeasure or solution."
+        },
+        "improvementDimensions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Dimensions of improvement (EHS, Produtividade, etc.)."
+        },
+        "achievedResults": {
+          "type": "string",
+          "description": "The achieved results."
+        },
+        "resultsDetails": {
+          "type": "string",
+          "description": "Detailed explanation of the results."
+        },
+        "riskMatrixBefore": {
+          "type": "object",
+          "properties": {
+            "safety": { "type": "string" },
+            "health": { "type": "string" },
+            "environment": { "type": "string" }
+          },
+          "description": "Risk matrix before the Kaizen."
+        },
+        "riskMatrixAfter": {
+          "type": "object",
+          "properties": {
+            "safety": { "type": "string" },
+            "health": { "type": "string" },
+            "environment": { "type": "string" }
+          },
+          "description": "Risk matrix after the Kaizen."
+        },
+        "mocNumber": {
+          "type": "string",
+          "description": "MOC Number."
+        },
+        "mocType": {
+          "type": "string",
+          "description": "MOC Type."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "submitted", "in_review", "approved", "implemented", "verified", "rejected"],
+          "description": "The current status of the Kaizen."
+        },
+        "postedOnWorkplace": {
+          "type": "boolean",
+          "description": "Whether it was posted on Workplace."
+        },
+        "shiftLeader": {
+          "type": "string",
+          "description": "The shift leader for this Kaizen."
+        },
+        "collaborators": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "shift": { "type": "string" }
+            }
+          },
+          "description": "Other collaborators involved."
+        },
+        "evidences": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "URLs or base64 strings of evidence images."
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "The UID of the user who created the Kaizen."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the Kaizen was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the Kaizen was last updated."
+        }
+      },
+      "required": ["title", "problem", "area", "status", "createdBy", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "Stores user profiles and roles."
+    },
+    "/kaizens/{kaizenId}": {
+      "schema": {
+        "$ref": "#/entities/Kaizen"
+      },
+      "description": "Stores all Kaizen projects."
+    }
+  }
+}
