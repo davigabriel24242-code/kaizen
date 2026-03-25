@@ -6,16 +6,21 @@ import { defineConfig, loadEnv } from 'vite';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
-    // IMPORTANTE: troque 'kaizen' pelo nome exato do seu repositório no GitHub
+    // Nome exato do repositório no GitHub
     base: '/kaizen/',
     plugins: [react(), tailwindcss()],
     define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY ?? ''),
     },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+    },
+    build: {
+      // Não falhar o build por avisos do TypeScript
+      minify: true,
+      sourcemap: false,
     },
   };
 });
