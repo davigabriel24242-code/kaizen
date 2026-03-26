@@ -78,17 +78,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async () => {
     const provider = new OAuthProvider('microsoft.com');
-    // Optional: Add custom parameters if you want to restrict to a specific tenant
-    // provider.setCustomParameters({
-    //   tenant: 'YOUR_TENANT_ID' // Replace with Mosaic's Azure AD tenant ID if needed
-    // });
+    
+    // Configuração para conta corporativa Microsoft (Azure AD)
+    // Use 'organizations' para qualquer conta corporativa Microsoft
+    // Ou substitua pelo Tenant ID da Mosaic (Azure Active Directory > Overview)
+    provider.setCustomParameters({
+      tenant: 'organizations',
+      prompt: 'select_account',
+    });
+
+    // Scopes necessários para obter email e perfil
+    provider.addScope('email');
+    provider.addScope('profile');
+
     try {
       await signInWithPopup(auth, provider);
     } catch (error: any) {
-      if (error.code === 'auth/popup-closed-by-user') {
-        console.log("Login cancelado pelo usuário.");
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        console.log('Login cancelado pelo usuário.');
+      } else if (error.code === 'auth/popup-blocked') {
+        alert('O popup de login foi bloqueado pelo navegador.
+Por favor, permita popups para este site e tente novamente.');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        console.error('Domínio não autorizado. Adicione em: Firebase Console > Authentication > Settings > Authorized domains');
+        alert('Erro de configuração: domínio não autorizado no Firebase. Contate o administrador.');
       } else {
-        console.error("Login failed", error);
+        console.error('Falha no login:', error.code, error.message);
+        alert('Erro ao fazer login: ' + (error.message || error.code));
       }
     }
   };

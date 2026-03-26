@@ -37,7 +37,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 const Login: React.FC = () => {
   const { user, login, loading } = useAuth();
-  
+  const [isLoggingIn, setIsLoggingIn] = React.useState(false);
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -48,6 +49,15 @@ const Login: React.FC = () => {
     if (!user.area) return <Navigate to="/complete-profile" />;
     return <Navigate to="/" />;
   }
+
+  const handleLogin = async () => {
+    setIsLoggingIn(true);
+    try {
+      await login();
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -61,20 +71,34 @@ const Login: React.FC = () => {
           }}
         />
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Portal Kaizen</h1>
-        <p className="text-gray-500 mb-8">Faça login com sua conta corporativa para acessar o portal de Melhoria Contínua.</p>
+        <p className="text-gray-500 mb-8">Faça login com sua conta corporativa da Mosaic para acessar o portal de Melhoria Contínua.</p>
         
         <button
-          onClick={login}
-          className="w-full flex items-center justify-center gap-3 bg-[#2F2F2F] text-white font-medium py-3 px-4 rounded-xl hover:bg-[#1A1A1A] transition-colors shadow-sm"
+          onClick={handleLogin}
+          disabled={isLoggingIn}
+          className="w-full flex items-center justify-center gap-3 bg-[#2F2F2F] text-white font-medium py-3 px-4 rounded-xl hover:bg-[#1A1A1A] transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 21 21">
-            <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
-            <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
-            <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
-            <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
-          </svg>
-          Entrar com conta corporativa
+          {isLoggingIn ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              Entrando...
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 21 21">
+                <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+              </svg>
+              Entrar com conta Microsoft (Mosaic)
+            </>
+          )}
         </button>
+
+        <p className="text-xs text-gray-400 mt-4">
+          Use seu e-mail corporativo @mosaic.com
+        </p>
       </div>
     </div>
   );
