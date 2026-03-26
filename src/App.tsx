@@ -78,7 +78,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <Router basename="/kaizen">
+        <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/complete-profile" element={<CompleteProfile />} />

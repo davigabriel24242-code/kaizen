@@ -142,15 +142,105 @@ export const KaizenDetail: React.FC = () => {
     // The previous code used 0-based indexing. I need to add 1 to all row and column indices.
 
     // Fetch logo and add to sheet
-    const addImageToSheet = (base64Data: string, range: { tl: { col: number, row: number }, br: { col: number, row: number } }) => {
+    const addImageToSheet = async (
+      imageUrl: string, 
+      targetCol: number, // 0-based
+      targetRow: number, // 0-based
+      cellWidthPx: number,
+      cellHeightPx: number,
+      colWidthPx: number = 90,
+      rowHeightPx: number = 20
+    ) => {
       try {
+        let base64Data = imageUrl;
+        let imgWidth = 0;
+        let imgHeight = 0;
+
+        await new Promise<void>((resolve) => {
+          const img = new Image();
+          if (!imageUrl.startsWith('data:image')) {
+            img.crossOrigin = 'Anonymous';
+          }
+          img.onload = () => {
+            imgWidth = img.width;
+            imgHeight = img.height;
+            if (!imageUrl.startsWith('data:image')) {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(img, 0, 0);
+                base64Data = canvas.toDataURL('image/png');
+              }
+            }
+            resolve();
+          };
+          img.onerror = () => {
+            console.warn('Failed to load image:', imageUrl);
+            resolve();
+          };
+          img.src = imageUrl;
+        });
+        
+        if (!base64Data.startsWith('data:image') || !imgWidth || !imgHeight) {
+          return;
+        }
+
         const base64String = base64Data.split(',')[1];
-        const extension = base64Data.substring(base64Data.indexOf('/') + 1, base64Data.indexOf(';')) as any;
+        let extension = base64Data.substring(base64Data.indexOf('/') + 1, base64Data.indexOf(';')) as any;
+        if (extension !== 'jpeg' && extension !== 'png' && extension !== 'gif') {
+          extension = 'png';
+        }
+        
         const imageId = workbook.addImage({
           base64: base64String,
           extension: extension,
         });
-        ws.addImage(imageId, range);
+
+        const padding = 10;
+        const maxWidth = cellWidthPx - padding * 2;
+        const maxHeight = cellHeightPx - padding * 2;
+
+        const imgAspect = imgWidth / imgHeight;
+        const targetAspect = maxWidth / maxHeight;
+        
+        let finalWidth = maxWidth;
+        let finalHeight = maxHeight;
+        
+        // Se a imagem for mais "larga" que o espaço, a largura dita o limite
+        if (imgAspect > targetAspect) {
+          finalHeight = maxWidth / imgAspect;
+        } else {
+          // Se a imagem for mais "alta" que o espaço, a altura dita o limite
+          finalWidth = maxHeight * imgAspect;
+        }
+
+        // Para fotos de perfil (onde a altura da célula é 80), queremos que a imagem preencha mais o espaço
+        // em vez de ficar minúscula. Vamos garantir um tamanho mínimo aceitável.
+        if (cellHeightPx <= 80) {
+           // Se a imagem ficou muito pequena na altura, vamos forçar a altura máxima e cortar as laterais (crop)
+           // ou apenas deixar ela maior e centralizada
+           finalHeight = maxHeight;
+           finalWidth = maxHeight * imgAspect;
+           
+           // Se a largura final passar da largura máxima da célula, limitamos a largura e ajustamos a altura
+           if (finalWidth > maxWidth) {
+             finalWidth = maxWidth;
+             finalHeight = maxWidth / imgAspect;
+           }
+        }
+
+        const offsetX = (cellWidthPx - finalWidth) / 2 / colWidthPx;
+        const offsetY = (cellHeightPx - finalHeight) / 2 / rowHeightPx;
+        
+        const widthInCols = finalWidth / colWidthPx;
+        const heightInRows = finalHeight / rowHeightPx;
+
+        ws.addImage(imageId, {
+          tl: { col: targetCol + offsetX, row: targetRow + offsetY },
+          br: { col: targetCol + offsetX + widthInCols, row: targetRow + offsetY + heightInRows }
+        });
       } catch (e) {
         console.error('Error adding image to excel', e);
       }
@@ -175,7 +265,7 @@ export const KaizenDetail: React.FC = () => {
       
       // Merge cells for logo (Row 1-6, Col 1-3)
       setMergedCell(1, 1, 6, 3, '', cellStyleCenter);
-      addImageToSheet(base64Logo, { tl: { col: 0.1, row: 0.1 }, br: { col: 2.9, row: 5.9 } });
+      await addImageToSheet(base64Logo, 0, 0, 270, 120, 90, 20);
     } catch (e) {
       console.warn('Logo not found or invalid, using text fallback');
       setMergedCell(1, 1, 6, 3, 'FOSPAR', {
@@ -225,13 +315,13 @@ export const KaizenDetail: React.FC = () => {
 
     // Add images if they exist
     if (kaizen.beforeImage) {
-      addImageToSheet(kaizen.beforeImage, { tl: { col: 0.1, row: 12.1 }, br: { col: 3.9, row: 17.9 } });
+      await addImageToSheet(kaizen.beforeImage, 0, 12, 360, 240, 90, 80);
     } else {
       ws.getCell(13, 1).value = '[Inserir Foto Antes Aqui]';
     }
 
     if (kaizen.afterImage) {
-      addImageToSheet(kaizen.afterImage, { tl: { col: 4.1, row: 12.1 }, br: { col: 6.9, row: 17.9 } });
+      await addImageToSheet(kaizen.afterImage, 4, 12, 270, 240, 90, 80);
     } else {
       ws.getCell(13, 5).value = '[Inserir Foto Depois Aqui]';
     }
@@ -278,10 +368,7 @@ export const KaizenDetail: React.FC = () => {
       setMergedCell(nameRow, startCol, nameRow, endCol, colabs[i]?.name || '', cellStyleCenter);
       
       if (colabs[i]?.photoURL) {
-        addImageToSheet(colabs[i].photoURL, { 
-          tl: { col: startCol - 1 + 0.1, row: photoRow - 1 + 0.1 }, 
-          br: { col: endCol - 1 + 0.9, row: photoRow - 1 + 0.9 } 
-        });
+        await addImageToSheet(colabs[i].photoURL, startCol - 1, photoRow - 1, 270, 80, 90, 80);
       }
     }
 
