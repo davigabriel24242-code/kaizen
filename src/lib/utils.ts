@@ -1,10 +1,23 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { auth } from '../firebase';
-import { OperationType, FirestoreErrorInfo } from '../types';
+import { OperationType, FirestoreErrorInfo, KaizenStatus } from '../types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+export function translateStatus(status: KaizenStatus | string): string {
+  const translations: Record<string, string> = {
+    draft: 'Rascunho',
+    submitted: 'Enviado',
+    in_review: 'Em Análise',
+    approved: 'Aprovado',
+    implemented: 'Implementado',
+    verified: 'Verificado',
+    rejected: 'Rejeitado'
+  };
+  return translations[status] || status;
 }
 
 export function compressImage(file: File, maxWidth = 800, maxHeight = 800, quality = 0.6): Promise<string> {

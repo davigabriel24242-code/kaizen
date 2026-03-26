@@ -26,6 +26,13 @@ export interface RiskMatrix {
   environment: string;
 }
 
+export interface ModificationRequest {
+  type: 'edit' | 'delete';
+  reason?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedAt: number;
+}
+
 export interface Kaizen {
   id: string;
   title: string;
@@ -55,6 +62,7 @@ export interface Kaizen {
   createdBy: string;
   createdAt: number; // Timestamp ms
   updatedAt: number; // Timestamp ms
+  modificationRequest?: ModificationRequest;
 }
 
 export enum OperationType {

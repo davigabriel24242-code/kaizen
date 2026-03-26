@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Kaizen, OperationType } from '../types';
-import { handleFirestoreError } from '../lib/utils';
+import { handleFirestoreError, translateStatus } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import { PlusCircle, FileText, CheckCircle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
@@ -103,12 +103,12 @@ export const Home: React.FC = () => {
                     {kaizen.unit || 'FOSPAR'} - {kaizen.area} • {format(new Date(kaizen.createdAt), 'dd/MM/yyyy')}
                   </p>
                 </div>
-                <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize
+                <span className={`px-2.5 py-1 rounded-full text-xs font-medium
                   ${kaizen.status === 'draft' ? 'bg-gray-100 text-gray-700' : 
                     kaizen.status === 'submitted' ? 'bg-yellow-100 text-yellow-800' : 
                     kaizen.status === 'approved' ? 'bg-green-100 text-green-800' : 
                     'bg-blue-100 text-blue-800'}`}>
-                  {kaizen.status.replace('_', ' ')}
+                  {translateStatus(kaizen.status)}
                 </span>
               </div>
             ))

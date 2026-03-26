@@ -13,6 +13,7 @@ import { CreateKaizen } from './pages/CreateKaizen';
 import { MyKaizens } from './pages/MyKaizens';
 import { Approvals } from './pages/Approvals';
 import { Management } from './pages/Management';
+import { Dashboard } from './pages/Dashboard';
 import { KaizenDetail } from './pages/KaizenDetail';
 
 import { Profile } from './pages/Profile';
@@ -64,10 +65,15 @@ const Login: React.FC = () => {
         
         <button
           onClick={login}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 font-medium py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+          className="w-full flex items-center justify-center gap-3 bg-[#2F2F2F] text-white font-medium py-3 px-4 rounded-xl hover:bg-[#1A1A1A] transition-colors shadow-sm"
         >
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-          Entrar com Google
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 21 21">
+            <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+            <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+            <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+            <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+          </svg>
+          Entrar com conta corporativa
         </button>
       </div>
     </div>
@@ -90,9 +96,11 @@ export default function App() {
             }>
               <Route index element={<Home />} />
               <Route path="new" element={<CreateKaizen />} />
+              <Route path="edit/:id" element={<CreateKaizen />} />
               <Route path="my-kaizens" element={<MyKaizens />} />
               <Route path="approvals" element={<Approvals />} />
               <Route path="management" element={<Management />} />
+              <Route path="dashboard" element={<Dashboard />} />
               <Route path="profile" element={<Profile />} />
               <Route path="kaizen/:id" element={<KaizenDetail />} />
             </Route>

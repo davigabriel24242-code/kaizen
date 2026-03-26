@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../firebase';
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup, OAuthProvider, signOut, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { User } from '../types';
 import { handleFirestoreError } from '../lib/utils';
@@ -77,7 +77,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async () => {
-    const provider = new GoogleAuthProvider();
+    const provider = new OAuthProvider('microsoft.com');
+    // Optional: Add custom parameters if you want to restrict to a specific tenant
+    // provider.setCustomParameters({
+    //   tenant: 'YOUR_TENANT_ID' // Replace with Mosaic's Azure AD tenant ID if needed
+    // });
     try {
       await signInWithPopup(auth, provider);
     } catch (error: any) {

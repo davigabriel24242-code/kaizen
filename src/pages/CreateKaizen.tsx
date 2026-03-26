@@ -1,25 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, doc, setDoc, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Kaizen, KaizenStatus, OperationType, User } from '../types';
 import { handleFirestoreError, compressImage } from '../lib/utils';
-import { ChevronRight, ChevronLeft, Save, Send, PlusCircle, Image as ImageIcon, X } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Save, Send, PlusCircle, Image as ImageIcon, X, CheckSquare } from 'lucide-react';
 
 const steps = [
   { id: 1, title: 'Contexto' },
   { id: 2, title: 'Problema & Solução' },
   { id: 3, title: 'Participantes' },
   { id: 4, title: 'Resultados & Riscos' },
-  { id: 5, title: 'Evidências' }
+  { id: 5, title: 'Finalização' }
 ];
 
 export const CreateKaizen: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(!!id);
 
   const [formData, setFormData] = useState<Partial<Kaizen>>({
     title: '',
@@ -60,6 +62,33 @@ export const CreateKaizen: React.FC = () => {
     };
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    const fetchKaizen = async () => {
+      if (!id) return;
+      try {
+        const docRef = doc(db, 'kaizens', id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data() as Kaizen;
+          if (data.createdBy !== user?.uid && user?.role !== 'admin') {
+            alert('Você não tem permissão para editar este Kaizen.');
+            navigate('/my-kaizens');
+            return;
+          }
+          setFormData(data);
+        } else {
+          alert('Kaizen não encontrado.');
+          navigate('/my-kaizens');
+        }
+      } catch (error) {
+        handleFirestoreError(error, OperationType.GET, `kaizens/${id}`);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    fetchKaizen();
+  }, [id, user, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -118,33 +147,52 @@ export const CreateKaizen: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const kaizenRef = doc(collection(db, 'kaizens'));
-      const newKaizen: Kaizen = {
-        ...formData,
-        id: kaizenRef.id,
-        status,
-        createdBy: user.uid,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      } as Kaizen;
+      if (id) {
+        const kaizenRef = doc(db, 'kaizens', id);
+        const updatedKaizen = {
+          ...formData,
+          status,
+          updatedAt: Date.now(),
+        };
+        const cleanKaizen = JSON.parse(JSON.stringify(updatedKaizen));
+        await updateDoc(kaizenRef, cleanKaizen);
+      } else {
+        const kaizenRef = doc(collection(db, 'kaizens'));
+        const newKaizen: Kaizen = {
+          ...formData,
+          id: kaizenRef.id,
+          status,
+          createdBy: user.uid,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        } as Kaizen;
 
-      // Clean undefined values before saving to Firestore
-      const cleanKaizen = JSON.parse(JSON.stringify(newKaizen));
+        // Clean undefined values before saving to Firestore
+        const cleanKaizen = JSON.parse(JSON.stringify(newKaizen));
 
-      await setDoc(kaizenRef, cleanKaizen);
+        await setDoc(kaizenRef, cleanKaizen);
+      }
       navigate('/my-kaizens');
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'kaizens');
+      handleFirestoreError(error, id ? OperationType.UPDATE : OperationType.CREATE, id ? `kaizens/${id}` : 'kaizens');
     } finally {
       setLoading(false);
     }
   };
 
+  if (initialLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Novo Kaizen</h1>
-        <p className="text-gray-500 mt-1">Preencha as informações do seu projeto de melhoria.</p>
+        <h1 className="text-3xl font-bold text-gray-900">{id ? 'Editar Kaizen' : 'Novo Kaizen'}</h1>
+        <p className="text-gray-500 mt-1">{id ? 'Atualize as informações do seu projeto de melhoria.' : 'Preencha as informações do seu projeto de melhoria.'}</p>
       </header>
 
       {/* Stepper */}
@@ -421,22 +469,16 @@ export const CreateKaizen: React.FC = () => {
 
         {currentStep === 5 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Evidências e Finalização</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Finalização</h2>
             
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-6 text-center">
               <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                <PlusCircle className="w-6 h-6" />
+                <CheckSquare className="w-6 h-6" />
               </div>
-              <p className="text-sm font-medium text-gray-700">Clique para anexar fotos (Antes/Depois)</p>
-              <p className="text-xs text-gray-500 mt-1">JPG, PNG ou PDF (Max 5MB)</p>
-              <p className="text-xs text-red-500 mt-2 italic">*Upload de arquivos desabilitado no MVP. Use URLs se necessário.</p>
-            </div>
-
-            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
-              <input type="checkbox" id="workplace" name="postedOnWorkplace" checked={formData.postedOnWorkplace} onChange={handleChange} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" />
-              <label htmlFor="workplace" className="text-sm font-medium text-blue-900">
-                Este Kaizen já foi postado no Workplace?
-              </label>
+              <h3 className="text-lg font-medium text-blue-900 mb-2">Quase lá!</h3>
+              <p className="text-blue-700 text-sm">
+                Revise as informações do seu Kaizen. Se estiver tudo certo, clique em "Enviar para Aprovação" abaixo.
+              </p>
             </div>
           </div>
         )}

@@ -115,13 +115,14 @@ service cloud.firestore {
       allow update: if isAuthenticated() && 
                     isValidKaizen(request.resource.data) &&
                     (
-                      (request.resource.data.createdBy == request.auth.uid && resource.data.status == 'draft') ||
+                      (request.resource.data.createdBy == request.auth.uid && (resource.data.status == 'draft' || resource.data.status == 'rejected')) ||
+                      (request.resource.data.createdBy == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['modificationRequest', 'updatedAt'])) ||
                       isAdmin() ||
                       isLeader()
                     ) &&
                     request.resource.data.createdBy == resource.data.createdBy &&
                     request.resource.data.createdAt == resource.data.createdAt;
-      allow delete: if isAdmin() || (isAuthenticated() && resource.data.createdBy == request.auth.uid && resource.data.status == 'draft');
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.createdBy == request.auth.uid && (resource.data.status == 'draft' || resource.data.status == 'rejected'));
     }
   }
 }

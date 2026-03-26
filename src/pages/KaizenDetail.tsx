@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Kaizen, OperationType } from '../types';
-import { handleFirestoreError } from '../lib/utils';
+import { handleFirestoreError, translateStatus } from '../lib/utils';
 import { ArrowLeft, Clock, CheckCircle, FileText, Users, MapPin, Tag, Calendar, Edit3, Trash2, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import ExcelJS from 'exceljs';
@@ -238,8 +238,8 @@ export const KaizenDetail: React.FC = () => {
         const heightInRows = finalHeight / rowHeightPx;
 
         ws.addImage(imageId, {
-          tl: { col: targetCol + offsetX, row: targetRow + offsetY },
-          br: { col: targetCol + offsetX + widthInCols, row: targetRow + offsetY + heightInRows }
+          tl: { col: targetCol + offsetX, row: targetRow + offsetY } as any,
+          br: { col: targetCol + offsetX + widthInCols, row: targetRow + offsetY + heightInRows } as any
         });
       } catch (e) {
         console.error('Error adding image to excel', e);
@@ -465,14 +465,14 @@ export const KaizenDetail: React.FC = () => {
             <Download className="w-4 h-4" />
             Exportar Excel
           </button>
-          <span className={`px-3 py-1.5 rounded-full text-sm font-bold capitalize shadow-sm border
+          <span className={`px-3 py-1.5 rounded-full text-sm font-bold shadow-sm border
             ${kaizen.status === 'draft' ? 'bg-gray-50 text-gray-700 border-gray-200' : 
               kaizen.status === 'submitted' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' : 
               kaizen.status === 'approved' ? 'bg-blue-50 text-blue-800 border-blue-200' : 
               kaizen.status === 'implemented' ? 'bg-purple-50 text-purple-800 border-purple-200' :
               isRejected ? 'bg-red-50 text-red-800 border-red-200' :
               'bg-green-50 text-green-800 border-green-200'}`}>
-            {kaizen.status.replace('_', ' ')}
+            {translateStatus(kaizen.status)}
           </span>
         </div>
       </header>

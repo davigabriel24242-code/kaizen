@@ -10,6 +10,7 @@ export const Profile: React.FC = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(user?.photoURL || null);
+  const [name, setName] = useState(user?.name || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!user) return null;
@@ -40,14 +41,19 @@ export const Profile: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!photoPreview) return;
+    if (!name.trim()) {
+      alert('O nome não pode estar vazio.');
+      return;
+    }
     
     setLoading(true);
     try {
       const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        photoURL: photoPreview
-      });
+      const updates: any = { name };
+      if (photoPreview) {
+        updates.photoURL = photoPreview;
+      }
+      await updateDoc(userRef, updates);
       alert('Perfil atualizado com sucesso!');
       window.location.reload(); // Reload to update context
     } catch (error) {
@@ -100,6 +106,15 @@ export const Profile: React.FC = () => {
           <div className="w-full max-w-md pt-6 border-t border-gray-100">
             <div className="space-y-4">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                <input 
+                  type="text" 
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)} 
+                  className="w-full p-3 bg-white border border-gray-300 rounded-xl text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Área</label>
                 <input type="text" disabled value={user.area || ''} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-600" />
               </div>
@@ -113,7 +128,7 @@ export const Profile: React.FC = () => {
           <div className="w-full max-w-md pt-6">
             <button
               onClick={handleSave}
-              disabled={loading || !photoPreview || photoPreview === user.photoURL}
+              disabled={loading || (photoPreview === user.photoURL && name === user.name)}
               className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
             >
               <Save className="w-5 h-5" />

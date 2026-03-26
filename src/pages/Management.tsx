@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Kaizen, OperationType } from '../types';
-import { handleFirestoreError } from '../lib/utils';
+import { handleFirestoreError, translateStatus } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import { LayoutGrid, List as ListIcon, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
@@ -167,14 +167,14 @@ export const Management: React.FC = () => {
                       <td className="px-6 py-4 text-sm text-gray-600">{kaizen.unit || 'FOSPAR'} - {kaizen.area}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{kaizen.classification}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize whitespace-nowrap
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap
                           ${kaizen.status === 'draft' ? 'bg-gray-100 text-gray-700' : 
                             kaizen.status === 'submitted' ? 'bg-yellow-100 text-yellow-800' : 
                             kaizen.status === 'approved' ? 'bg-blue-100 text-blue-800' : 
                             kaizen.status === 'implemented' ? 'bg-purple-100 text-purple-800' :
                             kaizen.status === 'rejected' ? 'bg-red-100 text-red-800' :
                             'bg-green-100 text-green-800'}`}>
-                          {kaizen.status.replace('_', ' ')}
+                          {translateStatus(kaizen.status)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">{format(new Date(kaizen.createdAt), 'dd/MM/yyyy')}</td>

@@ -1,29 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, query, where, onSnapshot, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Kaizen, OperationType } from '../types';
 import { handleFirestoreError } from '../lib/utils';
 import { Link } from 'react-router-dom';
-import { CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, AlertCircle, Edit3, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 export const Approvals: React.FC = () => {
   const { user } = useAuth();
   const [kaizens, setKaizens] = useState<Kaizen[]>([]);
+  const [requests, setRequests] = useState<Kaizen[]>([]);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || (user.role !== 'leader' && user.role !== 'admin')) return;
 
     // For MVP, leaders see all submitted kaizens. In a real app, filter by area/shift.
-    const q = query(
+    const qKaizens = query(
       collection(db, 'kaizens'),
       where('status', '==', 'submitted'),
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribeKaizens = onSnapshot(qKaizens, (snapshot) => {
       const data: Kaizen[] = [];
       snapshot.forEach((doc) => data.push(doc.data() as Kaizen));
       setKaizens(data);
@@ -31,7 +32,25 @@ export const Approvals: React.FC = () => {
       handleFirestoreError(error, OperationType.LIST, 'kaizens');
     });
 
-    return () => unsubscribe();
+    const qRequests = query(
+      collection(db, 'kaizens'),
+      where('modificationRequest.status', '==', 'pending')
+    );
+
+    const unsubscribeRequests = onSnapshot(qRequests, (snapshot) => {
+      const data: Kaizen[] = [];
+      snapshot.forEach((doc) => data.push(doc.data() as Kaizen));
+      // Sort in memory since we can't easily compound order by with nested fields without index
+      data.sort((a, b) => (b.modificationRequest?.requestedAt || 0) - (a.modificationRequest?.requestedAt || 0));
+      setRequests(data);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'kaizens');
+    });
+
+    return () => {
+      unsubscribeKaizens();
+      unsubscribeRequests();
+    };
   }, [user]);
 
   const handleAction = async (id: string, newStatus: Kaizen['status']) => {
@@ -44,6 +63,36 @@ export const Approvals: React.FC = () => {
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `kaizens/${id}`);
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleRequestAction = async (kaizen: Kaizen, action: 'approve' | 'reject') => {
+    setLoadingId(kaizen.id);
+    try {
+      const kaizenRef = doc(db, 'kaizens', kaizen.id);
+      
+      if (action === 'reject') {
+        await updateDoc(kaizenRef, {
+          'modificationRequest.status': 'rejected',
+          updatedAt: Date.now()
+        });
+      } else {
+        // Approve
+        if (kaizen.modificationRequest?.type === 'delete') {
+          await deleteDoc(kaizenRef);
+        } else {
+          // Edit: revert to draft and clear request
+          await updateDoc(kaizenRef, {
+            status: 'draft',
+            modificationRequest: null,
+            updatedAt: Date.now()
+          });
+        }
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `kaizens/${kaizen.id}`);
     } finally {
       setLoadingId(null);
     }
@@ -66,6 +115,72 @@ export const Approvals: React.FC = () => {
         <p className="text-gray-500 mt-1">Analise e aprove os Kaizens enviados pela equipe.</p>
       </header>
 
+      {requests.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-orange-500" />
+            Solicitações de Modificação
+          </h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden">
+            <div className="divide-y divide-orange-50">
+              {requests.map(kaizen => (
+                <div key={`req-${kaizen.id}`} className="p-6 hover:bg-orange-50/30 transition-colors">
+                  <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-xl font-semibold text-gray-900">{kaizen.title}</h3>
+                        <span className="bg-orange-100 text-orange-800 px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+                          {kaizen.modificationRequest?.type === 'edit' ? <Edit3 className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />}
+                          Solicitação de {kaizen.modificationRequest?.type === 'edit' ? 'Edição' : 'Exclusão'}
+                        </span>
+                      </div>
+                      
+                      {kaizen.modificationRequest?.reason && (
+                        <div className="mb-4">
+                          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Motivo da Solicitação</h4>
+                          <p className="text-sm text-gray-700 bg-orange-50/50 p-3 rounded-lg border border-orange-100 italic">"{kaizen.modificationRequest.reason}"</p>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 font-medium">
+                        <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md border border-blue-100">Área: {kaizen.unit || 'FOSPAR'} - {kaizen.area}</span>
+                        <span>Solicitado em: {format(new Date(kaizen.modificationRequest?.requestedAt || Date.now()), 'dd/MM/yyyy HH:mm')}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-row lg:flex-col gap-3 min-w-[140px]">
+                      <button
+                        onClick={() => handleRequestAction(kaizen, 'approve')}
+                        disabled={loadingId === kaizen.id}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Aprovar
+                      </button>
+                      <button
+                        onClick={() => handleRequestAction(kaizen, 'reject')}
+                        disabled={loadingId === kaizen.id}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-red-600 border border-red-200 rounded-lg font-medium hover:bg-red-50 disabled:opacity-50 transition-colors"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Reprovar
+                      </button>
+                      <Link
+                        to={`/kaizen/${kaizen.id}`}
+                        className="flex-1 flex items-center justify-center px-4 py-2.5 bg-white text-gray-600 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                      >
+                        Ver Detalhes
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <h2 className="text-xl font-bold text-gray-900 mb-4">Aguardando Aprovação</h2>
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="divide-y divide-gray-100">
           {kaizens.length === 0 ? (
