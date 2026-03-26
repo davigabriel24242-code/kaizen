@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { User } from '../types';
 import { handleFirestoreError } from '../lib/utils';
 import { OperationType } from '../types';
@@ -22,41 +22,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+    let unsubscribeSnapshot: () => void;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
       if (fbUser) {
         try {
           const userDocRef = doc(db, 'users', fbUser.uid);
-          const userDoc = await getDoc(userDocRef);
           
-          if (userDoc.exists()) {
-            setUser(userDoc.data() as User);
-          } else {
-            // Create new user as operator by default
+          // First check if user exists, if not create them
+          const userDoc = await getDoc(userDocRef);
+          if (!userDoc.exists()) {
             const newUser: User = {
               uid: fbUser.uid,
               name: fbUser.displayName || 'Usuário',
               email: fbUser.email || `${fbUser.uid}@sem-email.com`,
               role: 'operator',
               profileCompleted: false,
+              photoURL: fbUser.photoURL || undefined,
             };
             await setDoc(userDocRef, newUser);
-            setUser(newUser);
           }
+
+          // Then listen to changes
+          unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+              setUser(docSnap.data() as User);
+            }
+            setLoading(false);
+          }, (error) => {
+            console.error("Error listening to user:", error);
+            setLoading(false);
+          });
+
         } catch (error) {
           console.error("Error fetching/creating user:", error);
-          // We don't throw here to avoid unhandled promise rejection that breaks the loading state
-          // handleFirestoreError(error, OperationType.GET, `users/${fbUser.uid}`);
-        } finally {
           setLoading(false);
         }
       } else {
         setUser(null);
         setLoading(false);
+        if (unsubscribeSnapshot) {
+          unsubscribeSnapshot();
+        }
       }
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+      }
+    };
   }, []);
 
   const login = async () => {
