@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, query, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { User, OperationType } from '../types';
 import { handleFirestoreError } from '../lib/utils';
-import { ShieldAlert, UserX, CheckCircle2, Search } from 'lucide-react';
+import { ShieldAlert, UserX, CheckCircle2, Search, Trash2 } from 'lucide-react';
 
 export const UsersManagement: React.FC = () => {
   const { user: currentUser } = useAuth();
@@ -46,6 +46,22 @@ export const UsersManagement: React.FC = () => {
       } catch (error) {
         console.error("Error updating user status:", error);
         alert("Erro ao atualizar o status do usuário. Verifique as permissões.");
+      }
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (userId === currentUser?.uid) {
+      alert("Você não pode excluir sua própria conta.");
+      return;
+    }
+
+    if (window.confirm("ATENÇÃO: Tem certeza que deseja excluir permanentemente o perfil deste usuário? Esta ação não pode ser desfeita e removerá o acesso dele ao sistema.")) {
+      try {
+        await deleteDoc(doc(db, 'users', userId));
+      } catch (error) {
+        console.error("Error deleting user:", error);
+        alert("Erro ao excluir o usuário. Verifique as permissões.");
       }
     }
   };
@@ -153,6 +169,13 @@ export const UsersManagement: React.FC = () => {
                         title={user.status === 'inactive' ? 'Reativar Usuário' : 'Desativar Usuário'}
                       >
                         {user.status === 'inactive' ? <CheckCircle2 className="w-5 h-5" /> : <UserX className="w-5 h-5" />}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(user.uid)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Excluir Perfil"
+                      >
+                        <Trash2 className="w-5 h-5" />
                       </button>
                     </div>
                   </td>
