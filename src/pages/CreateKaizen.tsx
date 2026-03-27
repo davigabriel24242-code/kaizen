@@ -386,7 +386,7 @@ export const CreateKaizen: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Dimensões de Melhoria</label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {['Segurança', 'Meio Ambiente', 'Qualidade', 'Produtividade', 'Custo', 'Moral'].map(dim => (
+                {['EHS', 'PRODUTIVIDADE', 'QUALIDADE', 'CUSTO', 'CLIENTE', 'EQUIPE'].map(dim => (
                   <label key={dim} className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
                     <input 
                       type="checkbox" 
@@ -458,7 +458,12 @@ export const CreateKaizen: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo MOC</label>
-                <input type="text" name="mocType" value={formData.mocType} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="Ex: Alteração de Processo" />
+                <select name="mocType" value={formData.mocType} onChange={handleChange} className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                  <option value="">Selecione o tipo...</option>
+                  <option value="PERMANENTE">PERMANENTE</option>
+                  <option value="PROVISORIO">PROVISORIO</option>
+                  <option value="EMERGENCIAL">EMERGENCIAL</option>
+                </select>
               </div>
             </div>
           </div>

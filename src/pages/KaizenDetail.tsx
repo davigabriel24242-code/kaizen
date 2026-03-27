@@ -333,14 +333,14 @@ export const KaizenDetail: React.FC = () => {
 
     // Row 20-25: Dimensions (Left)
     const dims = kaizen.improvementDimensions || [];
-    const isEHS = dims.includes('Segurança') || dims.includes('Meio Ambiente') || dims.includes('Saúde');
+    const isEHS = dims.includes('EHS') || dims.includes('Segurança') || dims.includes('Meio Ambiente') || dims.includes('Saúde');
     
     setMergedCell(20, 1, 20, 2, `EHS \t\t\t ${isEHS ? 'X' : ''}`, cellStyleLeft);
-    setMergedCell(21, 1, 21, 2, `Produtividade \t\t ${dims.includes('Produtividade') ? 'X' : ''}`, cellStyleLeft);
-    setMergedCell(22, 1, 22, 2, `Qualidade \t\t ${dims.includes('Qualidade') ? 'X' : ''}`, cellStyleLeft);
-    setMergedCell(23, 1, 23, 2, `Custo \t\t\t ${dims.includes('Custo') ? 'X' : ''}`, cellStyleLeft);
-    setMergedCell(24, 1, 24, 2, `Clientes \t\t ${dims.includes('Clientes') ? 'X' : ''}`, cellStyleLeft);
-    setMergedCell(25, 1, 25, 2, `Equipe \t\t\t ${dims.includes('Moral') ? 'X' : ''}`, cellStyleLeft);
+    setMergedCell(21, 1, 21, 2, `Produtividade \t\t ${dims.includes('Produtividade') || dims.includes('PRODUTIVIDADE') ? 'X' : ''}`, cellStyleLeft);
+    setMergedCell(22, 1, 22, 2, `Qualidade \t\t ${dims.includes('Qualidade') || dims.includes('QUALIDADE') ? 'X' : ''}`, cellStyleLeft);
+    setMergedCell(23, 1, 23, 2, `Custo \t\t\t ${dims.includes('Custo') || dims.includes('CUSTO') ? 'X' : ''}`, cellStyleLeft);
+    setMergedCell(24, 1, 24, 2, `Clientes \t\t ${dims.includes('Clientes') || dims.includes('CLIENTE') ? 'X' : ''}`, cellStyleLeft);
+    setMergedCell(25, 1, 25, 2, `Equipe \t\t\t ${dims.includes('Moral') || dims.includes('EQUIPE') ? 'X' : ''}`, cellStyleLeft);
 
     setMergedCell(20, 3, 25, 4, kaizen.achievedResults, cellStyleCenter);
     setMergedCell(20, 5, 25, 7, kaizen.resultsDetails, cellStyleLeft);
