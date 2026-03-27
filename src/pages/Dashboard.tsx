@@ -19,8 +19,11 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Trophy, Medal, Award, Filter } from 'lucide-react';
 
+import { User } from '../types';
+
 export const Dashboard: React.FC = () => {
   const [kaizens, setKaizens] = useState<Kaizen[]>([]);
+  const [users, setUsers] = useState<Record<string, User>>({});
   const [loading, setLoading] = useState(true);
   
   // Estados para os filtros
@@ -28,20 +31,29 @@ export const Dashboard: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
 
   useEffect(() => {
-    const fetchKaizens = async () => {
+    const fetchData = async () => {
       try {
-        const q = query(collection(db, 'kaizens'), orderBy('createdAt', 'asc'));
-        const querySnapshot = await getDocs(q);
-        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Kaizen));
-        setKaizens(data);
+        const [kaizensSnapshot, usersSnapshot] = await Promise.all([
+          getDocs(query(collection(db, 'kaizens'), orderBy('createdAt', 'asc'))),
+          getDocs(collection(db, 'users'))
+        ]);
+        
+        const kaizensData = kaizensSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Kaizen));
+        setKaizens(kaizensData);
+        
+        const usersData: Record<string, User> = {};
+        usersSnapshot.docs.forEach(doc => {
+          usersData[doc.id] = doc.data() as User;
+        });
+        setUsers(usersData);
       } catch (error) {
-        handleFirestoreError(error, OperationType.LIST, 'kaizens');
+        handleFirestoreError(error, OperationType.LIST, 'dashboard_data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchKaizens();
+    fetchData();
   }, []);
 
   // Extrair anos disponíveis dos dados reais
@@ -146,6 +158,73 @@ export const Dashboard: React.FC = () => {
       .slice(0, 10);
   }, [filteredKaizens]);
 
+  // 4. Kaizens por Turno
+  const shiftData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredKaizens.forEach(k => {
+      const user = users[k.createdBy];
+      const shift = user?.shift || 'Não informado';
+      counts[shift] = (counts[shift] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [filteredKaizens, users]);
+
+  // 5. Kaizens por Classificação
+  const classificationData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredKaizens.forEach(k => {
+      const classification = k.classification || 'Não informada';
+      counts[classification] = (counts[classification] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [filteredKaizens]);
+
+  // 6. Kaizens por Método
+  const methodData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredKaizens.forEach(k => {
+      const method = k.method || 'Não informado';
+      counts[method] = (counts[method] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [filteredKaizens]);
+
+  // 7. Kaizens por Mês
+  const monthData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    
+    availableMonths.forEach(m => {
+      counts[m.label] = 0;
+    });
+
+    filteredKaizens.forEach(k => {
+      if (!k.createdAt) return;
+      const date = new Date(k.createdAt);
+      const monthLabel = format(date, 'MMMM', { locale: ptBR });
+      const formattedLabel = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+      
+      if (counts[formattedLabel] !== undefined) {
+        counts[formattedLabel] += 1;
+      }
+    });
+
+    const monthOrder = availableMonths.map(m => m.label);
+    
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => {
+        const indexA = monthOrder.indexOf(a.name);
+        const indexB = monthOrder.indexOf(b.name);
+        return indexA - indexB;
+      });
+  }, [filteredKaizens, availableMonths]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -248,6 +327,98 @@ export const Dashboard: React.FC = () => {
                   />
                   <Line type="monotone" dataKey="value" stroke="#10B981" strokeWidth={3} dot={{ r: 4, fill: '#10B981', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} name="Quantidade" />
                 </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-400">Nenhum dado no período</div>
+            )}
+          </div>
+        </div>
+
+        {/* Gráfico de Turnos */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h2 className="text-lg font-bold text-gray-800 mb-6">Kaizens por Turno</h2>
+          <div className="h-80">
+            {shiftData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={shiftData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
+                  <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
+                  <Tooltip 
+                    cursor={{ fill: '#F3F4F6' }}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                  />
+                  <Bar dataKey="value" fill="#8B5CF6" radius={[4, 4, 0, 0]} name="Quantidade" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-400">Nenhum dado no período</div>
+            )}
+          </div>
+        </div>
+
+        {/* Gráfico de Quantidade por Mês */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h2 className="text-lg font-bold text-gray-800 mb-6">Quantidade por Mês</h2>
+          <div className="h-80">
+            {monthData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
+                  <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
+                  <Tooltip 
+                    cursor={{ fill: '#F3F4F6' }}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                  />
+                  <Bar dataKey="value" fill="#F59E0B" radius={[4, 4, 0, 0]} name="Quantidade" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-400">Nenhum dado no período</div>
+            )}
+          </div>
+        </div>
+
+        {/* Gráfico de Classificação */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h2 className="text-lg font-bold text-gray-800 mb-6">Classificação</h2>
+          <div className="h-80">
+            {classificationData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={classificationData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
+                  <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
+                  <Tooltip 
+                    cursor={{ fill: '#F3F4F6' }}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                  />
+                  <Bar dataKey="value" fill="#EC4899" radius={[4, 4, 0, 0]} name="Quantidade" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-400">Nenhum dado no período</div>
+            )}
+          </div>
+        </div>
+
+        {/* Gráfico de Método */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h2 className="text-lg font-bold text-gray-800 mb-6">Método</h2>
+          <div className="h-80">
+            {methodData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={methodData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
+                  <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
+                  <Tooltip 
+                    cursor={{ fill: '#F3F4F6' }}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                  />
+                  <Bar dataKey="value" fill="#14B8A6" radius={[4, 4, 0, 0]} name="Quantidade" />
+                </BarChart>
               </ResponsiveContainer>
             ) : (
               <div className="h-full flex items-center justify-center text-gray-400">Nenhum dado no período</div>

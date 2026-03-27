@@ -46,9 +46,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           // Then listen to changes
-          unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
+          unsubscribeSnapshot = onSnapshot(userDocRef, async (docSnap) => {
             if (docSnap.exists()) {
-              setUser(docSnap.data() as User);
+              const userData = docSnap.data() as User;
+              if (userData.status === 'inactive') {
+                await signOut(auth);
+                setUser(null);
+                alert("Sua conta foi desativada pelo administrador.");
+              } else {
+                setUser(userData);
+              }
             }
             setLoading(false);
           }, (error) => {
@@ -79,7 +86,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithEmail = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userDocRef = doc(db, 'users', userCredential.user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists() && userDoc.data().status === 'inactive') {
+        await signOut(auth);
+        throw new Error('Sua conta foi desativada pelo administrador.');
+      }
     } catch (error: any) {
       console.error("Login failed", error);
       throw error;
@@ -98,6 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: email,
         role: 'operator',
         profileCompleted: false,
+        status: 'active',
       };
       await setDoc(userDocRef, newUser);
     } catch (error: any) {

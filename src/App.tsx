@@ -13,6 +13,7 @@ import { CreateKaizen } from './pages/CreateKaizen';
 import { MyKaizens } from './pages/MyKaizens';
 import { Approvals } from './pages/Approvals';
 import { Management } from './pages/Management';
+import { UsersManagement } from './pages/UsersManagement';
 import { Dashboard } from './pages/Dashboard';
 import { KaizenDetail } from './pages/KaizenDetail';
 
@@ -200,6 +201,7 @@ export default function App() {
               <Route path="my-kaizens" element={<MyKaizens />} />
               <Route path="approvals" element={<Approvals />} />
               <Route path="management" element={<Management />} />
+              <Route path="users" element={<UsersManagement />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="profile" element={<Profile />} />
               <Route path="kaizen/:id" element={<KaizenDetail />} />

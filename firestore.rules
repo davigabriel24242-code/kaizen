@@ -79,7 +79,8 @@ service cloud.firestore {
     function isValidUser(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
              data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
-             data.role in ['operator', 'leader', 'admin'];
+             data.role in ['operator', 'leader', 'admin'] &&
+             (!('status' in data) || data.status in ['active', 'inactive']);
     }
 
     function isValidKaizen(data) {
@@ -100,8 +101,9 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow create: if isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role == 'operator' || isAdmin());
-      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (
-        (isOwner(userId) && (request.resource.data.role == resource.data.role || resource.data.profileCompleted == false || !('profileCompleted' in resource.data))) || isAdmin()
+      allow update: if isAuthenticated() && (
+        (isValidUser(request.resource.data) && isOwner(userId) && (request.resource.data.role == resource.data.role || resource.data.profileCompleted == false || !('profileCompleted' in resource.data))) || 
+        isAdmin()
       );
       allow delete: if isAdmin();
     }

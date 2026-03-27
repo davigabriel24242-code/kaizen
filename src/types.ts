@@ -9,6 +9,7 @@ export interface User {
   shift?: string;
   profileCompleted?: boolean;
   photoURL?: string;
+  status?: 'active' | 'inactive';
 }
 
 export type KaizenStatus = 'draft' | 'submitted' | 'in_review' | 'approved' | 'implemented' | 'verified' | 'rejected';

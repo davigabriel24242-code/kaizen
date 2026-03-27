@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Home, PlusCircle, List, CheckSquare, BarChart2, LogOut, User, PieChart } from 'lucide-react';
+import { Home, PlusCircle, List, CheckSquare, BarChart2, LogOut, User, PieChart, Users } from 'lucide-react';
 
 export const Layout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -14,6 +14,7 @@ export const Layout: React.FC = () => {
     { name: 'Painel de Aprovação', path: '/approvals', icon: CheckSquare, roles: ['leader', 'admin'] },
     { name: 'Gestão', path: '/management', icon: BarChart2, roles: ['admin', 'leader'] },
     { name: 'Dashboard', path: '/dashboard', icon: PieChart, roles: ['admin', 'leader'] },
+    { name: 'Usuários', path: '/users', icon: Users, roles: ['admin'] },
     { name: 'Meu Perfil', path: '/profile', icon: User, roles: ['operator', 'leader', 'admin'] },
   ];
 
