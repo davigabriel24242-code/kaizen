@@ -49,6 +49,9 @@ export const CreateKaizen: React.FC = () => {
   });
 
   const [users, setUsers] = useState<User[]>([]);
+  const [newCollabName, setNewCollabName] = useState('');
+  const [newCollabId, setNewCollabId] = useState('');
+  const [showAddCollab, setShowAddCollab] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -141,6 +144,28 @@ export const CreateKaizen: React.FC = () => {
         [key]: { ...currentRisk, [field]: value }
       };
     });
+  };
+
+  const handleAddCustomCollaborator = () => {
+    if (!newCollabName.trim() || !newCollabId.trim()) {
+      alert('Preencha o nome e o ID do colaborador.');
+      return;
+    }
+    const customUid = `custom_${newCollabId.trim()}`;
+    
+    // Check if already added
+    if (formData.collaborators?.some(c => c.uid === customUid)) {
+      alert('Este colaborador já foi adicionado.');
+      return;
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      collaborators: [...(prev.collaborators || []), { name: newCollabName.trim(), shift: '', uid: customUid }]
+    }));
+    setNewCollabName('');
+    setNewCollabId('');
+    setShowAddCollab(false);
   };
 
   const handleSave = async (status: KaizenStatus) => {
@@ -334,7 +359,33 @@ export const CreateKaizen: React.FC = () => {
             </div>
             
             <div className="pt-4 border-t border-gray-100">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Colaboradores Envolvidos</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-gray-700">Colaboradores Envolvidos</h3>
+                <button 
+                  type="button" 
+                  onClick={() => setShowAddCollab(!showAddCollab)}
+                  className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                >
+                  <PlusCircle className="w-4 h-4" /> Adicionar Manual
+                </button>
+              </div>
+
+              {showAddCollab && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg flex flex-col sm:flex-row gap-3 items-end">
+                  <div className="flex-1 w-full">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Nome</label>
+                    <input type="text" value={newCollabName} onChange={e => setNewCollabName(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg text-sm" placeholder="Nome do colaborador" />
+                  </div>
+                  <div className="flex-1 w-full">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">ID / Matrícula</label>
+                    <input type="text" value={newCollabId} onChange={e => setNewCollabId(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg text-sm" placeholder="ID ou Matrícula" />
+                  </div>
+                  <button type="button" onClick={handleAddCustomCollaborator} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+                    Adicionar
+                  </button>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-2 border border-gray-200 rounded-lg">
                 {users.map(u => {
                   const isSelected = formData.collaborators?.some(c => c.uid === u.uid);
@@ -374,6 +425,28 @@ export const CreateKaizen: React.FC = () => {
                 {users.length === 0 && (
                   <p className="text-sm text-gray-500 p-2">Nenhum usuário encontrado.</p>
                 )}
+                
+                {formData.collaborators?.filter(c => c.uid?.startsWith('custom_')).map(c => (
+                  <label key={c.uid} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer border border-transparent hover:border-gray-200 transition-colors">
+                    <input 
+                      type="checkbox"
+                      checked={true}
+                      onChange={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          collaborators: (prev.collaborators || []).filter(collab => collab.uid !== c.uid)
+                        }));
+                      }}
+                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600">
+                        {c.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-sm text-gray-700">{c.name} <span className="text-xs text-gray-400">({c.uid?.replace('custom_', '')})</span></span>
+                    </div>
+                  </label>
+                ))}
               </div>
             </div>
           </div>

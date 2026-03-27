@@ -16,6 +16,7 @@ import { Management } from './pages/Management';
 import { UsersManagement } from './pages/UsersManagement';
 import { Dashboard } from './pages/Dashboard';
 import { KaizenDetail } from './pages/KaizenDetail';
+import { Mural } from './pages/Mural';
 
 import { Profile } from './pages/Profile';
 import { CompleteProfile } from './pages/CompleteProfile';
@@ -189,6 +190,12 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/complete-profile" element={<CompleteProfile />} />
+            
+            <Route path="/mural" element={
+              <ProtectedRoute>
+                <Mural />
+              </ProtectedRoute>
+            } />
             
             <Route path="/" element={
               <ProtectedRoute>

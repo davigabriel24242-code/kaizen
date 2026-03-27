@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Home, PlusCircle, List, CheckSquare, BarChart2, LogOut, User, PieChart, Users } from 'lucide-react';
+import { Home, PlusCircle, List, CheckSquare, BarChart2, LogOut, User, PieChart, Users, MonitorPlay } from 'lucide-react';
 
 export const Layout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -9,6 +9,7 @@ export const Layout: React.FC = () => {
 
   const navItems = [
     { name: 'Painel', path: '/', icon: Home, roles: ['operator', 'leader', 'admin'] },
+    { name: 'Mural', path: '/mural', icon: MonitorPlay, roles: ['operator', 'leader', 'admin'] },
     { name: 'Novo Kaizen', path: '/new', icon: PlusCircle, roles: ['operator', 'leader', 'admin'] },
     { name: 'Meus Kaizens', path: '/my-kaizens', icon: List, roles: ['operator', 'leader', 'admin'] },
     { name: 'Painel de Aprovação', path: '/approvals', icon: CheckSquare, roles: ['leader', 'admin'] },
